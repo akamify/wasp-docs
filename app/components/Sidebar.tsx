@@ -26,7 +26,7 @@ export default function Sidebar({ className, onCloseMobile }: SidebarProps) {
       {/* Brand Header */}
       <div className="px-6 py-6">
         <Link 
-          href="/docs/introduction" 
+          href="/introduction" 
           onClick={onCloseMobile}
           className="flex items-center space-x-2 tracking-tight"
         >
@@ -57,7 +57,7 @@ export default function Sidebar({ className, onCloseMobile }: SidebarProps) {
                   return (
                     <li key={doc.id} className="relative">
                       <Link
-                        href={`/docs/${doc.slug}`}
+                        href={`/${doc.slug}`}
                         onClick={onCloseMobile}
                         className={cn(
                           "block pl-4 py-1 text-sm transition-all duration-150 -ml-[1px]",
