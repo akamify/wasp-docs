@@ -1,0 +1,74 @@
+/* Custom premium dark code highlighting (Always Dark theme for maximum aesthetic contrast) */
+.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 0 !important;
+  background: #121212 !important;
+  color: #abb2bf !important;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: #6272a4 !important;
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-subst {
+  color: #c678dd !important; /* purple/pink keywords */
+}
+
+.hljs-number,
+.hljs-literal,
+.hljs-variable,
+.hljs-template-variable {
+  color: #d19a66 !important; /* orange numbers */
+}
+
+.hljs-attr,
+.hljs-attribute {
+  color: #61afef !important; /* light blue variables/attributes */
+}
+
+.hljs-string,
+.hljs-doctag {
+  color: #98c379 !important; /* green strings */
+}
+
+.hljs-title,
+.hljs-section,
+.hljs-selector-id {
+  color: #e5c07b !important; /* gold/yellow component names */
+  font-weight: bold;
+}
+
+.hljs-type,
+.hljs-class .hljs-title,
+.hljs-tag {
+  color: #e5c07b !important; /* components tags */
+}
+
+.hljs-symbol,
+.hljs-bullet,
+.hljs-built_in,
+.hljs-builtin-name {
+  color: #c678dd !important;
+}
+
+.hljs-meta,
+.hljs-deletion {
+  color: #e06c75 !important;
+}
+
+.hljs-addition {
+  color: #98c379 !important;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
