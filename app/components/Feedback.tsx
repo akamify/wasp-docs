@@ -28,7 +28,7 @@ export default function Feedback({ docSlug }: { docSlug: string }) {
     }
   }, [docSlug])
 
-  const handleFeedback = (helpful: boolean) => {
+  const handleFeedback = async (helpful: boolean) => {
     if (hasVoted) return
 
     // Store feedback in localStorage
@@ -45,6 +45,21 @@ export default function Feedback({ docSlug }: { docSlug: string }) {
     setFeedback(helpful)
     setHasVoted(true)
     setShowThankYou(true)
+
+    try {
+      await fetch('/api/docs/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          slug: docSlug,
+          helpful,
+        }),
+      })
+    } catch {
+      // Keep UX unchanged even if feedback API fails.
+    }
     
     // Hide thank you message after 3 seconds
     setTimeout(() => {
@@ -73,7 +88,7 @@ export default function Feedback({ docSlug }: { docSlug: string }) {
           ) : (
             <div className="flex items-center gap-2">
               <button
-                onClick={() => handleFeedback(true)}
+                onClick={() => void handleFeedback(true)}
                 disabled={hasVoted}
                 className={cn(
                   "flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors",
@@ -87,7 +102,7 @@ export default function Feedback({ docSlug }: { docSlug: string }) {
               </button>
               
               <button
-                onClick={() => handleFeedback(false)}
+                onClick={() => void handleFeedback(false)}
                 disabled={hasVoted}
                 className={cn(
                   "flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors",
