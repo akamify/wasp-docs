@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Search, X, FileText } from 'lucide-react'
 import { cn } from '@/app/lib/utils'
-import { searchDocs, Doc } from '@/app/lib/getDocs'
 import Link from 'next/link'
+import { FrontendDoc } from '@/app/lib/docs-types'
 
 interface SearchBarProps {
   isOpen: boolean
@@ -13,7 +13,8 @@ interface SearchBarProps {
 
 export default function SearchBar({ isOpen, onClose }: SearchBarProps) {
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<Doc[]>([])
+  const [results, setResults] = useState<FrontendDoc[]>([])
+  const [docs, setDocs] = useState<FrontendDoc[]>([])
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -24,14 +25,36 @@ export default function SearchBar({ isOpen, onClose }: SearchBarProps) {
   }, [isOpen])
 
   useEffect(() => {
+    let isMounted = true
+    const loadDocs = async () => {
+      const res = await fetch('/api/docs/navigation', { cache: 'no-store' })
+      if (!res.ok) return
+      const json = await res.json()
+      const items = (json?.data?.categories || []).flatMap((c: any) => c.items || [])
+      if (isMounted) setDocs(items)
+    }
+    loadDocs()
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  useEffect(() => {
     if (query.trim()) {
-      const searchResults = searchDocs(query)
+      const lowercaseQuery = query.toLowerCase()
+      const searchResults = docs.filter((doc) => {
+        const titleMatch = doc.title.toLowerCase().includes(lowercaseQuery)
+        const descriptionMatch = doc.description.toLowerCase().includes(lowercaseQuery)
+        const contentMatch = doc.content.toLowerCase().includes(lowercaseQuery)
+        const keywordsMatch = doc.keywords.some((keyword: string) => keyword.toLowerCase().includes(lowercaseQuery))
+        return titleMatch || descriptionMatch || contentMatch || keywordsMatch
+      })
       setResults(searchResults.slice(0, 8)) // Limit to 8 results
       setSelectedIndex(-1)
     } else {
       setResults([])
     }
-  }, [query])
+  }, [query, docs])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -54,7 +77,7 @@ export default function SearchBar({ isOpen, onClose }: SearchBarProps) {
         case 'Enter':
           e.preventDefault()
           if (selectedIndex >= 0 && results[selectedIndex]) {
-            window.location.href = `/docs/${results[selectedIndex].slug}`
+            window.location.href = `/${results[selectedIndex].slug}`
           }
           break
       }
@@ -112,7 +135,7 @@ export default function SearchBar({ isOpen, onClose }: SearchBarProps) {
               {results.map((doc, index) => (
                 <Link
                   key={doc.id}
-                  href={`/docs/${doc.slug}`}
+                  href={`/${doc.slug}`}
                   className={cn(
                     "flex items-start px-4 py-3 hover:bg-accent transition-colors border-b border-border last:border-b-0",
                     selectedIndex === index && "bg-accent"

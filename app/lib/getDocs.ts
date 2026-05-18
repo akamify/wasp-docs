@@ -1,55 +1,52 @@
-import { allDocs, Doc } from '@/app/data/all-docs'
+import 'server-only';
 
-export type { Doc }
+import { Doc, FrontendDoc } from '@/app/lib/docs-types';
+import { getPublishedDocBySlug, getPublishedNavigationDocs, toFrontendDoc } from '@/app/lib/server/docs-service';
 
-export function getAllDocs(): Doc[] {
-  return [...allDocs].sort((a: Doc, b: Doc) => (a.order || 0) - (b.order || 0))
+export type { Doc, FrontendDoc };
+
+export async function getDocBySlug(slug: string): Promise<FrontendDoc | null> {
+  const doc = await getPublishedDocBySlug(slug);
+  return doc ? toFrontendDoc(doc) : null;
 }
 
-export function getDocBySlug(slug: string): Doc | undefined {
-  return allDocs.find((doc: Doc) => doc.slug === slug)
+export async function getAllDocs(): Promise<FrontendDoc[]> {
+  const docs = await getPublishedNavigationDocs();
+  return docs.map(toFrontendDoc).sort((a, b) => a.order - b.order);
 }
 
-export function getDocsByCategory(category: string): Doc[] {
-  return allDocs
-    .filter((doc: Doc) => doc.category === category)
-    .sort((a: Doc, b: Doc) => (a.order || 0) - (b.order || 0))
+export async function getDocsByCategory(category: string): Promise<FrontendDoc[]> {
+  const docs = await getAllDocs();
+  return docs.filter((doc) => doc.category === category).sort((a, b) => a.order - b.order);
 }
 
-export function getCategories(): string[] {
-  const categories = Array.from(new Set(allDocs.map((doc: Doc) => doc.category)))
-  const categoryOrder = ['GETTING STARTED', 'PLATFORM CONFIGURATION', 'CORE APIS', 'CORE FEATURES', 'RESOURCES']
-  return categories.sort((a: string, b: string) => {
-    const aIdx = categoryOrder.indexOf(a)
-    const bIdx = categoryOrder.indexOf(b)
-    if (aIdx === -1) return 1
-    if (bIdx === -1) return -1
-    return aIdx - bIdx
-  })
+export async function getCategories(): Promise<string[]> {
+  const docs = await getAllDocs();
+  const categories = Array.from(new Set(docs.map((doc) => doc.category)));
+  const categoryOrder = ['GETTING STARTED', 'PLATFORM CONFIGURATION', 'CORE APIS', 'CORE FEATURES', 'RESOURCES'];
+
+  return categories.sort((a, b) => {
+    const aIdx = categoryOrder.indexOf(a);
+    const bIdx = categoryOrder.indexOf(b);
+    if (aIdx === -1) return 1;
+    if (bIdx === -1) return -1;
+    return aIdx - bIdx;
+  });
 }
 
-export function searchDocs(query: string): Doc[] {
-  const lowercaseQuery = query.toLowerCase()
-  
-  return allDocs.filter((doc: Doc) => {
-    const titleMatch = doc.title.toLowerCase().includes(lowercaseQuery)
-    const descriptionMatch = doc.description.toLowerCase().includes(lowercaseQuery)
-    const contentMatch = doc.content.toLowerCase().includes(lowercaseQuery)
-    const keywordsMatch = doc.keywords.some((keyword: string) => 
-      keyword.toLowerCase().includes(lowercaseQuery)
-    )
-    
-    return titleMatch || descriptionMatch || contentMatch || keywordsMatch
-  }).sort((a: Doc, b: Doc) => (a.order || 0) - (b.order || 0))
-}
+export async function getNavigation() {
+  const docs = await getPublishedNavigationDocs();
+  const categoryOrder = ['GETTING STARTED', 'PLATFORM CONFIGURATION', 'CORE APIS', 'CORE FEATURES', 'RESOURCES'];
+  const grouped = new Map<string, { name: string; order: number; items: FrontendDoc[] }>();
 
-export function getBreadcrumbs(slug: string): { title: string; slug: string }[] {
-  const doc = getDocBySlug(slug)
-  if (!doc) return []
-  
-  return [
-    { title: 'Documentation', slug: '/docs' },
-    { title: doc.category, slug: `/docs?category=${encodeURIComponent(doc.category)}` },
-    { title: doc.title, slug: `/docs/${slug}` }
-  ]
+  docs.forEach((doc) => {
+    const name = doc.sidebar?.section || doc.category;
+    const order = typeof doc.sidebar?.sectionOrder === 'number' ? doc.sidebar.sectionOrder : Math.max(categoryOrder.indexOf(name), 0);
+    if (!grouped.has(name)) grouped.set(name, { name, order, items: [] });
+    grouped.get(name)!.items.push(toFrontendDoc(doc));
+  });
+
+  return Array.from(grouped.values())
+    .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))
+    .map((g) => ({ ...g, items: g.items.sort((a, b) => a.order - b.order || a.title.localeCompare(b.title)) }));
 }

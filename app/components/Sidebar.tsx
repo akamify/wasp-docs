@@ -4,16 +4,20 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import { cn } from '@/app/lib/utils'
-import { getCategories, getDocsByCategory } from '@/app/lib/getDocs'
+import { FrontendDoc } from '@/app/lib/docs-types'
 
 interface SidebarProps {
   className?: string
   onCloseMobile?: () => void
+  categories: Array<{
+    name: string
+    order: number
+    items: FrontendDoc[]
+  }>
 }
 
-export default function Sidebar({ className, onCloseMobile }: SidebarProps) {
+export default function Sidebar({ className, onCloseMobile, categories }: SidebarProps) {
   const pathname = usePathname()
-  const categories = getCategories()
 
   useEffect(() => {
     // Force light theme permanently
@@ -42,18 +46,18 @@ export default function Sidebar({ className, onCloseMobile }: SidebarProps) {
       {/* Navigation Areas */}
       <nav className="flex-1 overflow-y-auto scrollbar-none px-6 py-6 space-y-8">
         {categories.map((category) => {
-          const docs = getDocsByCategory(category)
+          const docs = category.items
 
           return (
-            <div key={category} className="space-y-3">
+            <div key={category.name} className="space-y-3">
               <h3 className="text-[10px] font-mono font-bold text-muted-foreground tracking-widest uppercase">
-                {category}
+                {category.name}
               </h3>
               
               <ul className="space-y-1.5 border-l border-border ml-[2px]">
                 {docs.map((doc) => {
                   const normalizePath = (path: string) => path.replace(/\/$/, '')
-                  const isActive = normalizePath(pathname) === normalizePath(`/docs/${doc.slug}`)
+                  const isActive = normalizePath(pathname) === normalizePath(`/${doc.slug}`)
                   return (
                     <li key={doc.id} className="relative">
                       <Link

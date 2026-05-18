@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation'
-import { getDocBySlug } from '@/app/lib/getDocs'
 import DocPageClient from '@/app/components/DocPageClient'
+import { getDocBySlug } from '@/app/lib/getDocs'
 
-export async function generateMetadata() {
-  const doc = getDocBySlug('authentication')
+export async function generateMetadata({ params }: { params: { slug: string } }) {
+  const doc = await getDocBySlug(params.slug)
   if (!doc) return { title: 'Page Not Found' }
   return {
     title: doc.title,
@@ -12,8 +12,8 @@ export async function generateMetadata() {
   }
 }
 
-export default function Page() {
-  const doc = getDocBySlug('authentication')
+export default async function SlugPage({ params }: { params: { slug: string } }) {
+  const doc = await getDocBySlug(params.slug)
   if (!doc) notFound()
   return <DocPageClient doc={doc} />
 }

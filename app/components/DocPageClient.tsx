@@ -20,7 +20,7 @@ import json from 'highlight.js/lib/languages/json'
 import bash from 'highlight.js/lib/languages/bash'
 
 import { cn } from '@/app/lib/utils'
-import { Doc } from '@/app/lib/getDocs'
+import { FrontendDoc } from '@/app/lib/getDocs'
 import Feedback from './Feedback'
 import TableOfContents from './TableOfContents'
 import ScrollToTop from './ScrollToTop'
@@ -30,6 +30,54 @@ interface ContentBlock {
   type: 'markdown' | 'step-card' | 'callout' | 'api-response-card' | 'code-block'
   content: string
   metadata?: Record<string, string>
+}
+
+function extractApiResponseContent(raw: string): { title: string; body: string; trailingMarkdown: string } {
+  const trimmed = raw.trim()
+  if (!trimmed) return { title: 'Response', body: '', trailingMarkdown: '' }
+
+  const lines = trimmed.split('\n')
+  const title = lines[0]?.trim() || 'Response'
+  const remaining = lines.slice(1).join('\n').trim()
+
+  const fencedMatch = remaining.match(/```[\w-]*\n([\s\S]*?)```/)
+  if (fencedMatch && fencedMatch[0] && fencedMatch[1]) {
+    const fencedBody = fencedMatch[1].trim()
+    const trailingMarkdown = remaining
+      .slice(remaining.indexOf(fencedMatch[0]) + fencedMatch[0].length)
+      .trim()
+    return { title, body: fencedBody, trailingMarkdown }
+  }
+
+  return { title, body: remaining, trailingMarkdown: '' }
+}
+
+function splitMarkdownByResponsePattern(markdown: string): ContentBlock[] {
+  const blocks: ContentBlock[] = []
+  const pattern = /(^#{2,6}\s*response[^\n]*\n```(?:json)?\n[\s\S]*?```)/gim
+
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = pattern.exec(markdown)) !== null) {
+    const start = match.index
+    const end = pattern.lastIndex
+
+    const before = markdown.slice(lastIndex, start).trim()
+    if (before) {
+      blocks.push({ type: 'markdown', content: before })
+    }
+
+    blocks.push({ type: 'api-response-card', content: match[1].trim() })
+    lastIndex = end
+  }
+
+  const after = markdown.slice(lastIndex).trim()
+  if (after) {
+    blocks.push({ type: 'markdown', content: after })
+  }
+
+  return blocks.length > 0 ? blocks : [{ type: 'markdown', content: markdown }]
 }
 
 const rehypeHighlightOptions = {
@@ -90,7 +138,11 @@ function parseContent(content: string): ContentBlock[] {
       // 1. If we were currently accumulating a block, finalize and push it
       if (currentBlock) {
         currentBlock.content = accumulator.join('\n')
-        blocks.push(currentBlock)
+        if (currentBlock.type === 'markdown') {
+          blocks.push(...splitMarkdownByResponsePattern(currentBlock.content))
+        } else {
+          blocks.push(currentBlock)
+        }
         currentBlock = null
         accumulator = []
       }
@@ -122,14 +174,18 @@ function parseContent(content: string): ContentBlock[] {
 
   if (currentBlock) {
     currentBlock.content = accumulator.join('\n')
-    blocks.push(currentBlock)
+    if (currentBlock.type === 'markdown') {
+      blocks.push(...splitMarkdownByResponsePattern(currentBlock.content))
+    } else {
+      blocks.push(currentBlock)
+    }
   }
 
   return blocks
 }
 
 interface DocPageClientProps {
-  doc: Doc
+  doc: FrontendDoc
 }
 
 export default function DocPageClient({ doc }: DocPageClientProps) {
@@ -143,7 +199,7 @@ export default function DocPageClient({ doc }: DocPageClientProps) {
           <div>
             {/* Minimal Monochrome Breadcrumbs */}
             <nav className="flex items-center space-x-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-8">
-              <Link href="/docs/introduction" className="hover:text-foreground transition-colors">
+              <Link href="/introduction" className="hover:text-foreground transition-colors">
                 docs
               </Link>
               <span className="text-muted-foreground/45">/</span>
@@ -199,76 +255,95 @@ export default function DocPageClient({ doc }: DocPageClientProps) {
                 }
 
                 if (block.type === 'api-response-card') {
-                  const lines = block.content.trim().split('\n')
-
-                  const title = lines[0]
-
-                  const jsonContent = lines.slice(1).join('\n').trim()
+                  const { title, body, trailingMarkdown } = extractApiResponseContent(block.content)
+                  const jsonContent = `\`\`\`json\n${body}\n\`\`\``
+                  const badgeMatch = title.match(/\(([^)]+)\)/)
+                  const statusBadge = badgeMatch ? badgeMatch[1].toLowerCase() : 'accepted'
+                  const statusCodeMatch = statusBadge.match(/\b(\d{3})\b/)
+                  const statusCode = statusCodeMatch ? Number(statusCodeMatch[1]) : null
+                  const statusColorClass =
+                    statusCode && statusCode >= 500
+                      ? 'text-red-400'
+                      : statusCode && statusCode >= 400
+                        ? 'text-amber-400'
+                        : statusCode && statusCode >= 300
+                          ? 'text-sky-400'
+                          : 'text-emerald-500'
 
                   return (
-                    <div
-                      key={idx}
-                      className="not-prose my-8 overflow-hidden rounded-[10px] border border-neutral-200 bg-[#0d0d0d] dark:border-neutral-800"
-                    >
-                      {/* Top Header */}
-                      <div className="flex items-center justify-between border-b border-neutral-800 px-5 py-3">
-                        <div className="flex items-center gap-3">
-                          <span className="text-[11px] font-mono text-neutral-500">
-                            response.json
-                          </span>
+                    <>
+                      <div
+                        key={idx}
+                        className="not-prose my-8 overflow-hidden rounded-[10px] border border-neutral-200 bg-[#0d0d0d] dark:border-neutral-800"
+                      >
+                        {/* Top Header */}
+                        <div className="flex items-center justify-between border-b border-neutral-800 px-5 py-3">
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] font-mono text-neutral-500">
+                              response.json
+                            </span>
 
-                          <div className="h-1 w-1 rounded-full bg-neutral-700" />
+                            <div className="h-1 w-1 rounded-full bg-neutral-700" />
 
-                          <span className="text-[11px] font-medium text-emerald-500">
-                            202 accepted
-                          </span>
+                            <span className={cn("text-[11px] font-medium", statusColorClass)}>
+                              {statusBadge}
+                            </span>
+                          </div>
+
+                          <CopyButton text={block.content} />
+                        </div>
+                        <div className="border-b border-neutral-800 px-5 py-3">
+                          <h4 className={cn("text-[12px] font-semibold tracking-wide uppercase", statusColorClass)}>
+                            {title.replace(/^#{2,6}\s*/g, '')}
+                          </h4>
                         </div>
 
-                        <CopyButton text={block.content} />
-                      </div>
+                        {/* JSON */}
+                        <div className="overflow-x-auto">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[
+                              [rehypeHighlight, rehypeHighlightOptions],
+                            ]}
+                            components={{
+                              ...markdownComponents,
 
-                      {/* Error Title */}
-                      <div className="border-b border-neutral-800 px-5 py-4">
-                        <h4 className="text-[13px] font-semibold text-red-400">
-                          {title}
-                        </h4>
-                      </div>
+                              pre: ({ children }: any) => (
+                                <pre className="overflow-x-auto px-5 py-5 text-[13px] leading-7">
+                                  {children}
+                                </pre>
+                              ),
 
-                      {/* JSON */}
-                      <div className="overflow-x-auto">
+                              code: ({
+                                className,
+                                children,
+                              }: any) => (
+                                <code
+                                  className={cn(
+                                    "font-mono text-[13px] text-neutral-200",
+                                    className
+                                  )}
+                                >
+                                  {children}
+                                </code>
+                              ),
+                            }}
+                          >
+                            {jsonContent}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                      {trailingMarkdown ? (
                         <ReactMarkdown
+                          key={`${idx}-trail`}
                           remarkPlugins={[remarkGfm]}
-                          rehypePlugins={[
-                            [rehypeHighlight, rehypeHighlightOptions],
-                          ]}
-                          components={{
-                            ...markdownComponents,
-
-                            pre: ({ children }: any) => (
-                              <pre className="overflow-x-auto px-5 py-5 text-[13px] leading-7">
-                                {children}
-                              </pre>
-                            ),
-
-                            code: ({
-                              className,
-                              children,
-                            }: any) => (
-                              <code
-                                className={cn(
-                                  "font-mono text-[13px] text-neutral-200",
-                                  className
-                                )}
-                              >
-                                {children}
-                              </code>
-                            ),
-                          }}
+                          rehypePlugins={[[rehypeHighlight, rehypeHighlightOptions]]}
+                          components={markdownComponents}
                         >
-                          {jsonContent}
+                          {trailingMarkdown}
                         </ReactMarkdown>
-                      </div>  
-                    </div>
+                      ) : null}
+                    </>
                   )
                 }
 
