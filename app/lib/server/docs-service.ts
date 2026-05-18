@@ -1,17 +1,35 @@
-import 'server-only';
+﻿import 'server-only';
 
 import { connectToDatabase } from '@/lib/mongodb';
 import { DocModel } from '@/app/lib/server/doc-model';
 import { PublicPageDocModel } from '@/app/lib/server/public-page-doc-model';
 import { Doc, FrontendDoc } from '@/app/lib/docs-types';
 
+function normalizeDocText(value: string): string {
+  return value
+    .replace(/\u023A/g, 'A')
+    .replace(/â€“/g, '-')
+    .replace(/â€”/g, '-')
+    .replace(/â€˜|â€™/g, "'")
+    .replace(/â€œ|â€/g, '"');
+}
+
+function getSanitizedMongoUri(): string {
+  const raw = process.env.MONGODB_URI || '';
+  return raw
+    .replace(/^\uFEFF/, '')
+    .replace(/[\u200B-\u200D\u2060]/g, '')
+    .trim()
+    .replace(/^['"]+|['"]+$/g, '');
+}
+
 function mapToDoc(raw: any): Doc {
   return {
     id: raw.id || String(raw._id),
     slug: raw.slug,
     title: raw.title,
-    description: raw.description,
-    content: raw.content,
+    description: normalizeDocText(raw.description || ''),
+    content: normalizeDocText(raw.content || ''),
     keywords: Array.isArray(raw.keywords) ? raw.keywords : [],
     category: raw.category,
     order: typeof raw.order === 'number' ? raw.order : 0,
@@ -25,7 +43,31 @@ function mapToDoc(raw: any): Doc {
 }
 
 function isMongoConfigured(): boolean {
-  return Boolean(process.env.MONGODB_URI);
+  const uri = getSanitizedMongoUri();
+  if (!uri) return false;
+  return uri.startsWith('mongodb://') || uri.startsWith('mongodb+srv://');
+}
+
+export async function getDocsDataSourceStatus(): Promise<{ ready: boolean; reason?: string }> {
+  const uri = getSanitizedMongoUri();
+  if (!uri) {
+    return { ready: false, reason: 'MONGODB_URI is missing' };
+  }
+  if (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
+    return { ready: false, reason: 'MONGODB_URI has invalid scheme (must start with mongodb:// or mongodb+srv://)' };
+  }
+  try {
+    process.env.MONGODB_URI = uri;
+    await connectToDatabase();
+    return { ready: true };
+  } catch (error: any) {
+    return { ready: false, reason: error?.message || 'MongoDB connection failed' };
+  }
+}
+
+export async function isDocsDataSourceReady(): Promise<boolean> {
+  const status = await getDocsDataSourceStatus();
+  return status.ready;
 }
 
 export function toFrontendDoc(doc: Doc): FrontendDoc {
@@ -42,17 +84,32 @@ export function toFrontendDoc(doc: Doc): FrontendDoc {
 }
 
 export async function getPublishedDocBySlug(slug: string): Promise<Doc | null> {
-  if (!isMongoConfigured()) return null;
-  await connectToDatabase();
+  if (!isMongoConfigured()) {
+    return null;
+  }
+
+  try {
+    await connectToDatabase();
+  } catch {
+    return null;
+  }
   const raw =
     (await DocModel.findOne({ slug, status: 'published' }).lean()) ||
     (await PublicPageDocModel.findOne({ slug, status: 'published', contentType: 'doc' }).lean());
-  return raw ? mapToDoc(raw) : null;
+
+  if (raw) return mapToDoc(raw);
+
+  return null;
 }
 
 export async function getPublishedNavigationDocs(): Promise<Doc[]> {
   if (!isMongoConfigured()) return [];
-  await connectToDatabase();
+
+  try {
+    await connectToDatabase();
+  } catch {
+    return [];
+  }
   const docRaws = await DocModel.find(
     { status: 'published' },
     {

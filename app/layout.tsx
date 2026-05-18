@@ -12,7 +12,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body>
+      <body suppressHydrationWarning>
         <AppShellClient navigation={navigation}>{children}</AppShellClient>
       </body>
     </html>

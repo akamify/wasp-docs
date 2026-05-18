@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -35,7 +35,7 @@ export default function Sidebar({ className, onCloseMobile, categories }: Sideba
           className="flex items-center space-x-2 tracking-tight"
         >
           <div className="h-5 w-5 bg-foreground rounded-[3px] flex items-center justify-center">
-            <span className="text-[10px] font-bold text-background font-mono">Ω</span>
+            <span className="text-[10px] font-bold text-background font-mono">DW</span>
           </div>
           <span className="font-mono font-bold text-sm tracking-wider uppercase text-foreground">
             {process.env.NEXT_PUBLIC_BRAND_NAME || 'DigitalWasp'}
@@ -91,3 +91,5 @@ export default function Sidebar({ className, onCloseMobile, categories }: Sideba
     </div>
   )
 }
+
+

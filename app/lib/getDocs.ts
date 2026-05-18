@@ -1,9 +1,11 @@
 import 'server-only';
 
 import { Doc, FrontendDoc } from '@/app/lib/docs-types';
-import { getPublishedDocBySlug, getPublishedNavigationDocs, toFrontendDoc } from '@/app/lib/server/docs-service';
+import { getDocsDataSourceStatus, getPublishedDocBySlug, getPublishedNavigationDocs, isDocsDataSourceReady, toFrontendDoc } from '@/app/lib/server/docs-service';
 
 export type { Doc, FrontendDoc };
+export { isDocsDataSourceReady };
+export { getDocsDataSourceStatus };
 
 export async function getDocBySlug(slug: string): Promise<FrontendDoc | null> {
   const doc = await getPublishedDocBySlug(slug);

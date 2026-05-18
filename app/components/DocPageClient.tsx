@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -24,6 +24,7 @@ import { FrontendDoc } from '@/app/lib/getDocs'
 import Feedback from './Feedback'
 import TableOfContents from './TableOfContents'
 import ScrollToTop from './ScrollToTop'
+import SearchBar from './SearchBar'
 import { markdownComponents } from './MarkdownComponents'
 
 interface ContentBlock {
@@ -207,6 +208,8 @@ export default function DocPageClient({ doc }: DocPageClientProps) {
               <span className="text-muted-foreground/45">/</span>
               <span className="text-foreground font-bold">{doc.title.toLowerCase()}</span>
             </nav>
+
+            <SearchBar className="mb-10" placeholder="Search docs from this page..." />
 
             <article className="prose prose-neutral dark:prose-invert max-w-none">
               {blocks.map((block, idx) => {
@@ -431,3 +434,4 @@ export default function DocPageClient({ doc }: DocPageClientProps) {
     </div>
   )
 }
+
