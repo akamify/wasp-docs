@@ -9,11 +9,12 @@ export default async function RootLayout({
   children: React.ReactNode
 }) {
   const navigation = await getNavigation()
+  const brandName = process.env.NEXT_PUBLIC_BRAND_NAME || 'DigitalWasp'
 
   return (
     <html lang="en">
       <body suppressHydrationWarning>
-        <AppShellClient navigation={navigation}>{children}</AppShellClient>
+        <AppShellClient navigation={navigation} brandName={brandName}>{children}</AppShellClient>
       </body>
     </html>
   )

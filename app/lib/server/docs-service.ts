@@ -3,6 +3,7 @@
 import { connectToDatabase } from '@/lib/mongodb';
 import { DocModel } from '@/app/lib/server/doc-model';
 import { PublicPageDocModel } from '@/app/lib/server/public-page-doc-model';
+import { SiteSettingModel } from '@/app/lib/server/site-setting-model';
 import { Doc, FrontendDoc } from '@/app/lib/docs-types';
 
 function normalizeDocText(value: string): string {
@@ -186,4 +187,18 @@ export async function deleteDocById(id: string): Promise<boolean> {
   await connectToDatabase();
   const res = await DocModel.findByIdAndDelete(id).lean();
   return Boolean(res);
+}
+
+export async function getBrandNameSetting(): Promise<string> {
+  const fallback = process.env.NEXT_PUBLIC_BRAND_NAME || 'DigitalWasp';
+  if (!isMongoConfigured()) return fallback;
+
+  try {
+    await connectToDatabase();
+    const setting = await SiteSettingModel.findOne({ key: 'brand_name' }).lean();
+    const value = typeof setting?.value === 'string' ? setting.value.trim() : '';
+    return value || fallback;
+  } catch {
+    return fallback;
+  }
 }

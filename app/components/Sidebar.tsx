@@ -9,6 +9,7 @@ import { FrontendDoc } from '@/app/lib/docs-types'
 interface SidebarProps {
   className?: string
   onCloseMobile?: () => void
+  brandName: string
   categories: Array<{
     name: string
     order: number
@@ -16,7 +17,7 @@ interface SidebarProps {
   }>
 }
 
-export default function Sidebar({ className, onCloseMobile, categories }: SidebarProps) {
+export default function Sidebar({ className, onCloseMobile, categories, brandName }: SidebarProps) {
   const pathname = usePathname()
 
   useEffect(() => {
@@ -38,7 +39,7 @@ export default function Sidebar({ className, onCloseMobile, categories }: Sideba
             <span className="text-[10px] font-bold text-background font-mono">DW</span>
           </div>
           <span className="font-mono font-bold text-sm tracking-wider uppercase text-foreground">
-            {process.env.NEXT_PUBLIC_BRAND_NAME || 'DigitalWasp'}
+            {brandName}
           </span>
         </Link>
       </div>

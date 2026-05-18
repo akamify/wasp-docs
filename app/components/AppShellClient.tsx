@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Menu, X } from 'lucide-react'
 import Sidebar from '@/app/components/Sidebar'
 import { FrontendDoc } from '@/app/lib/docs-types'
@@ -14,11 +14,39 @@ type NavCategory = {
 export default function AppShellClient({
   children,
   navigation,
+  brandName,
 }: {
   children: React.ReactNode
   navigation: NavCategory[]
+  brandName: string
 }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const [liveBrandName, setLiveBrandName] = useState(brandName)
+
+  useEffect(() => {
+    let mounted = true
+
+    const loadBrandName = async () => {
+      try {
+        const res = await fetch('/api/docs/settings/brand', { cache: 'no-store' })
+        if (!res.ok) return
+        const json = await res.json()
+        const nextBrandName = String(json?.data?.brandName || '').trim()
+        if (mounted && nextBrandName) {
+          setLiveBrandName(nextBrandName)
+        }
+      } catch {
+        // Keep existing value when request fails.
+      }
+    }
+
+    loadBrandName()
+    const timer = setInterval(loadBrandName, 15000)
+    return () => {
+      mounted = false
+      clearInterval(timer)
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row antialiased">
@@ -28,7 +56,7 @@ export default function AppShellClient({
             <span className="text-[10px] font-bold text-background font-mono">DW</span>
           </div>
           <span className="font-mono font-bold text-sm tracking-wider uppercase text-foreground">
-            {process.env.NEXT_PUBLIC_BRAND_NAME || 'DigitalWasp'}
+            {liveBrandName}
           </span>
         </div>
 
@@ -42,7 +70,7 @@ export default function AppShellClient({
       </header>
 
       <aside className="hidden md:block w-64 flex-shrink-0 sticky top-0 h-screen overflow-hidden">
-        <Sidebar categories={navigation} />
+        <Sidebar categories={navigation} brandName={liveBrandName} />
       </aside>
 
       {isMobileOpen && (
@@ -52,7 +80,7 @@ export default function AppShellClient({
             onClick={() => setIsMobileOpen(false)}
           />
           <div className="relative flex flex-col w-64 max-w-[280px] h-full bg-background border-r border-border shadow-xl animate-in slide-in-from-left duration-200">
-            <Sidebar categories={navigation} onCloseMobile={() => setIsMobileOpen(false)} />
+            <Sidebar categories={navigation} brandName={liveBrandName} onCloseMobile={() => setIsMobileOpen(false)} />
           </div>
         </div>
       )}
@@ -63,5 +91,3 @@ export default function AppShellClient({
     </div>
   )
 }
-
-
