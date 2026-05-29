@@ -2,8 +2,7 @@
 
 import { connectToDatabase } from '@/lib/mongodb';
 import { DocModel } from '@/app/lib/server/doc-model';
-import { PublicPageDocModel } from '@/app/lib/server/public-page-doc-model';
-import { SiteSettingModel } from '@/app/lib/server/site-setting-model';
+import { DocsSettingModel } from '@/app/lib/server/docs-setting-model';
 import { Doc, FrontendDoc } from '@/app/lib/docs-types';
 
 function normalizeDocText(value: string): string {
@@ -34,20 +33,6 @@ function getSlugCandidates(slug: string): string[] {
   return Array.from(candidates).filter(Boolean);
 }
 
-function getPublishedPublicDocFilter(slug?: string) {
-  const baseFilter: any = {
-    status: 'published',
-    $or: [{ contentType: 'doc' }, { contentType: 'page' }, { contentType: { $exists: false } }, { contentType: null }],
-  };
-
-  if (!slug) return baseFilter;
-
-  const slugCandidates = getSlugCandidates(slug);
-  if (!slugCandidates.length) return { ...baseFilter, slug: '' };
-
-  return { ...baseFilter, slug: { $in: slugCandidates } };
-}
-
 function getSanitizedMongoUri(): string {
   const raw = process.env.MONGODB_URI || '';
   return raw
@@ -58,21 +43,34 @@ function getSanitizedMongoUri(): string {
 }
 
 function mapToDoc(raw: any): Doc {
+  const source = raw?.data && typeof raw.data === 'object' ? raw.data : raw;
+  const slug = normalizeSlugInput(source.slug || raw.slug);
+  const title = source.title || raw.title || '';
+  const description = source.description || raw.description || '';
+  const content = source.content || raw.content || '';
+  const keywords = Array.isArray(source.keywords) ? source.keywords : Array.isArray(raw.keywords) ? raw.keywords : [];
+  const category = source.category || raw.category || 'GENERAL';
+  const order = typeof source.order === 'number' ? source.order : typeof raw.order === 'number' ? raw.order : 0;
+  const status = source.status || raw.status || 'draft';
+  const sidebar = source.sidebar || raw.sidebar;
+  const seo = source.seo || raw.seo;
+  const publishedAt = source.publishedAt || raw.publishedAt;
+
   return {
     id: raw.id || String(raw._id),
-    slug: raw.slug,
-    title: raw.title,
-    description: normalizeDocText(raw.description || ''),
-    content: normalizeDocText(raw.content || ''),
-    keywords: Array.isArray(raw.keywords) ? raw.keywords : [],
-    category: raw.category,
-    order: typeof raw.order === 'number' ? raw.order : 0,
-    status: raw.status,
-    sidebar: raw.sidebar,
-    seo: raw.seo,
+    slug,
+    title,
+    description: normalizeDocText(description),
+    content: normalizeDocText(content),
+    keywords,
+    category,
+    order,
+    status,
+    sidebar,
+    seo,
     createdAt: new Date(raw.createdAt).toISOString(),
     updatedAt: new Date(raw.updatedAt).toISOString(),
-    publishedAt: raw.publishedAt ? new Date(raw.publishedAt).toISOString() : undefined,
+    publishedAt: publishedAt ? new Date(publishedAt).toISOString() : undefined,
   };
 }
 
@@ -127,16 +125,18 @@ export async function getPublishedDocBySlug(slug: string): Promise<Doc | null> {
   } catch {
     return null;
   }
+
   const slugCandidates = getSlugCandidates(slug);
   if (!slugCandidates.length) return null;
 
-  const raw =
-    (await DocModel.findOne({ slug: { $in: slugCandidates }, status: 'published' }).lean()) ||
-    (await PublicPageDocModel.findOne(getPublishedPublicDocFilter(slug)).lean());
+  const raw = await DocModel.findOne({
+    $and: [
+      { $or: [{ slug: { $in: slugCandidates } }, { 'data.slug': { $in: slugCandidates } }] },
+      { $or: [{ status: 'published' }, { 'data.status': 'published' }] },
+    ],
+  }).lean();
 
-  if (raw) return mapToDoc(raw);
-
-  return null;
+  return raw ? mapToDoc(raw) : null;
 }
 
 export async function getPublishedNavigationDocs(): Promise<Doc[]> {
@@ -147,30 +147,11 @@ export async function getPublishedNavigationDocs(): Promise<Doc[]> {
   } catch {
     return [];
   }
-  const docRaws = await DocModel.find(
-    { status: 'published' },
-    {
-      id: 1,
-      slug: 1,
-      title: 1,
-      description: 1,
-      content: 1,
-      keywords: 1,
-      category: 1,
-      order: 1,
-      sidebar: 1,
-      seo: 1,
-      status: 1,
-      createdAt: 1,
-      updatedAt: 1,
-      publishedAt: 1,
-    }
-  )
-    .sort({ 'sidebar.sectionOrder': 1, category: 1, 'sidebar.itemOrder': 1, order: 1, title: 1 })
-    .lean();
 
-  const pageRaws = await PublicPageDocModel.find(
-    getPublishedPublicDocFilter(),
+  const docRaws = await DocModel.find(
+    {
+      $or: [{ status: 'published' }, { 'data.status': 'published' }],
+    },
     {
       id: 1,
       slug: 1,
@@ -186,14 +167,18 @@ export async function getPublishedNavigationDocs(): Promise<Doc[]> {
       createdAt: 1,
       updatedAt: 1,
       publishedAt: 1,
+      data: 1,
     }
   )
     .sort({ 'sidebar.sectionOrder': 1, category: 1, 'sidebar.itemOrder': 1, order: 1, title: 1 })
     .lean();
 
   const mergedBySlug = new Map<string, any>();
-  for (const raw of pageRaws) mergedBySlug.set(raw.slug, raw);
-  for (const raw of docRaws) mergedBySlug.set(raw.slug, raw);
+  for (const raw of docRaws) {
+    const source = raw?.data && typeof raw.data === 'object' ? raw.data : raw;
+    const slug = normalizeSlugInput(source.slug || raw.slug);
+    if (slug) mergedBySlug.set(slug, raw);
+  }
 
   return Array.from(mergedBySlug.values()).map(mapToDoc);
 }
@@ -231,7 +216,7 @@ export async function getBrandNameSetting(): Promise<string> {
 
   try {
     await connectToDatabase();
-    const setting = await SiteSettingModel.findOne({ key: { $in: ['brand_name', 'brandName', 'docs_brand_name'] } }).lean();
+    const setting = await DocsSettingModel.findOne({ key: { $in: ['brand_name', 'brandName', 'docs_brand_name'] } }).lean();
     const value = typeof setting?.value === 'string' ? setting.value.trim() : '';
     return value || fallback;
   } catch {
