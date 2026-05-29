@@ -15,6 +15,39 @@ function normalizeDocText(value: string): string {
     .replace(/â€œ|â€/g, '"');
 }
 
+function normalizeSlugInput(slug: string): string {
+  return String(slug || '').trim().toLowerCase();
+}
+
+function getSlugCandidates(slug: string): string[] {
+  const normalized = normalizeSlugInput(slug);
+  if (!normalized) return [];
+
+  const candidates = new Set<string>([
+    normalized,
+    normalized.replace(/\s+/g, '-'),
+    normalized.replace(/\s+/g, '_'),
+    normalized.replace(/-/g, ' '),
+    normalized.replace(/_/g, '-'),
+  ]);
+
+  return Array.from(candidates).filter(Boolean);
+}
+
+function getPublishedPublicDocFilter(slug?: string) {
+  const baseFilter: any = {
+    status: 'published',
+    $or: [{ contentType: 'doc' }, { contentType: 'page' }, { contentType: { $exists: false } }, { contentType: null }],
+  };
+
+  if (!slug) return baseFilter;
+
+  const slugCandidates = getSlugCandidates(slug);
+  if (!slugCandidates.length) return { ...baseFilter, slug: '' };
+
+  return { ...baseFilter, slug: { $in: slugCandidates } };
+}
+
 function getSanitizedMongoUri(): string {
   const raw = process.env.MONGODB_URI || '';
   return raw
@@ -94,9 +127,12 @@ export async function getPublishedDocBySlug(slug: string): Promise<Doc | null> {
   } catch {
     return null;
   }
+  const slugCandidates = getSlugCandidates(slug);
+  if (!slugCandidates.length) return null;
+
   const raw =
-    (await DocModel.findOne({ slug, status: 'published' }).lean()) ||
-    (await PublicPageDocModel.findOne({ slug, status: 'published', contentType: 'doc' }).lean());
+    (await DocModel.findOne({ slug: { $in: slugCandidates }, status: 'published' }).lean()) ||
+    (await PublicPageDocModel.findOne(getPublishedPublicDocFilter(slug)).lean());
 
   if (raw) return mapToDoc(raw);
 
@@ -134,7 +170,7 @@ export async function getPublishedNavigationDocs(): Promise<Doc[]> {
     .lean();
 
   const pageRaws = await PublicPageDocModel.find(
-    { status: 'published', contentType: 'doc' },
+    getPublishedPublicDocFilter(),
     {
       id: 1,
       slug: 1,
@@ -195,7 +231,7 @@ export async function getBrandNameSetting(): Promise<string> {
 
   try {
     await connectToDatabase();
-    const setting = await SiteSettingModel.findOne({ key: 'brand_name' }).lean();
+    const setting = await SiteSettingModel.findOne({ key: { $in: ['brand_name', 'brandName', 'docs_brand_name'] } }).lean();
     const value = typeof setting?.value === 'string' ? setting.value.trim() : '';
     return value || fallback;
   } catch {
