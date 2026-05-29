@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { cn } from '@/app/lib/utils'
 
 interface TableOfContentsProps {
@@ -10,6 +10,7 @@ interface TableOfContentsProps {
 export default function TableOfContents({ content }: TableOfContentsProps) {
   const [headings, setHeadings] = useState<Array<{ id: string; text: string; level: number }>>([])
   const [activeId, setActiveId] = useState<string>('')
+  const tocRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     const headingRegex = /^(#{2,3})\s+(.+)$/gm
@@ -20,7 +21,7 @@ export default function TableOfContents({ content }: TableOfContentsProps) {
       const level = match[1].length
       const text = match[2].replace(/`/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
       const id = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-')
-      
+
       foundHeadings.push({ id, text, level })
     }
 
@@ -57,6 +58,12 @@ export default function TableOfContents({ content }: TableOfContentsProps) {
     }
   }, [headings])
 
+  useEffect(() => {
+    if (!activeId || !tocRef.current) return
+    const activeButton = tocRef.current.querySelector<HTMLButtonElement>(`button[data-heading-id="${activeId}"]`)
+    activeButton?.scrollIntoView({ block: 'nearest' })
+  }, [activeId])
+
   const scrollToHeading = (id: string) => {
     const element = document.getElementById(id)
     if (element) {
@@ -68,7 +75,7 @@ export default function TableOfContents({ content }: TableOfContentsProps) {
   if (headings.length === 0) return null
 
   return (
-    <div className="sticky top-12 space-y-6 pr-4">
+    <div ref={tocRef} className="space-y-6 pr-4">
       <div className="space-y-4">
         <h3 className="text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground">
           ON THIS PAGE
@@ -79,6 +86,7 @@ export default function TableOfContents({ content }: TableOfContentsProps) {
             return (
               <button
                 key={heading.id}
+                data-heading-id={heading.id}
                 onClick={() => scrollToHeading(heading.id)}
                 className={cn(
                   "block w-full text-left text-[11px] font-sans transition-all duration-150 pl-4 -ml-[1px] border-l py-1.5",

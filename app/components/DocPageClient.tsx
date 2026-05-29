@@ -425,7 +425,7 @@ export default function DocPageClient({ doc }: DocPageClientProps) {
         </div>
 
         {/* Desktop Sticky Right Sidebar Table of Contents */}
-        <div className="lg:col-span-1 hidden lg:block sticky top-12 self-start min-w-0">
+        <div className="lg:col-span-1 hidden lg:block sticky top-12 self-start min-w-0 max-h-[calc(100vh-3rem)] overflow-y-auto scrollbar-none">
           <TableOfContents content={doc.content} />
         </div>
       </div>
