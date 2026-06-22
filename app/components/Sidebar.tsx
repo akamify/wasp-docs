@@ -36,7 +36,7 @@ export default function Sidebar({ className, onCloseMobile, categories, brandNam
           className="flex items-center space-x-2 tracking-tight"
         >
           <div className="h-5 w-5 bg-foreground rounded-[3px] flex items-center justify-center">
-            <span className="text-[10px] font-bold text-background font-mono">DW</span>
+            <img src="/logo.png" alt={brandName} className="h-3 w-3" />
           </div>
           <span className="font-mono font-bold text-sm tracking-wider uppercase text-foreground">
             {brandName}
@@ -92,5 +92,4 @@ export default function Sidebar({ className, onCloseMobile, categories, brandNam
     </div>
   )
 }
-
 
