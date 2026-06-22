@@ -7,6 +7,9 @@ export const runtime = 'nodejs';
 type FeedbackBody = {
   slug?: string;
   helpful?: boolean;
+  docTitle?: string;
+  pagePath?: string;
+  visitorId?: string;
 };
 
 export async function POST(request: NextRequest) {
@@ -23,11 +26,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Database is not configured' }, { status: 503 });
     }
 
+    const forwardedFor = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '';
+    const ipAddress = forwardedFor.split(',')[0]?.trim() || '';
+
     await connectToDatabase();
 
     await DocFeedbackModel.create({
       slug,
+      docTitle: (body.docTitle || '').trim(),
       helpful: body.helpful,
+      pagePath: (body.pagePath || '').trim(),
+      visitorId: (body.visitorId || '').trim(),
+      ipAddress,
       userAgent: request.headers.get('user-agent') || '',
       source: 'docs-web',
     });

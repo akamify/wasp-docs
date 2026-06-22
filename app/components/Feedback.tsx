@@ -15,6 +15,7 @@ export default function Feedback({ docSlug }: { docSlug: string }) {
   const [feedback, setFeedback] = useState<boolean | null>(null)
   const [showThankYou, setShowThankYou] = useState(false)
   const [hasVoted, setHasVoted] = useState(false)
+  const [visitorId, setVisitorId] = useState('')
 
   useEffect(() => {
     // Check if user has already voted on this doc
@@ -26,6 +27,19 @@ export default function Feedback({ docSlug }: { docSlug: string }) {
         setHasVoted(true)
       }
     }
+
+    const storedVisitorId = localStorage.getItem('docs-feedback-visitor-id')
+    if (storedVisitorId) {
+      setVisitorId(storedVisitorId)
+      return
+    }
+
+    const nextVisitorId =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+    localStorage.setItem('docs-feedback-visitor-id', nextVisitorId)
+    setVisitorId(nextVisitorId)
   }, [docSlug])
 
   const handleFeedback = async (helpful: boolean) => {
@@ -55,6 +69,9 @@ export default function Feedback({ docSlug }: { docSlug: string }) {
         body: JSON.stringify({
           slug: docSlug,
           helpful,
+          docTitle: document.title,
+          pagePath: window.location.pathname,
+          visitorId,
         }),
       })
     } catch {
