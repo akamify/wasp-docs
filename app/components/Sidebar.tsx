@@ -35,7 +35,7 @@ export default function Sidebar({ className, onCloseMobile, categories, brandNam
           onClick={onCloseMobile}
           className="flex items-center space-x-2 tracking-tight"
         >
-          <div className="h-5 w-5 bg-foreground rounded-[3px] flex items-center justify-center">
+          <div className="h-5 w-5 flex items-center justify-center">
             <img src="/logo.png" alt={brandName} className="h-3 w-3" />
           </div>
           <span className="font-mono font-bold text-sm tracking-wider uppercase text-foreground">
