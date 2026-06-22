@@ -3,6 +3,14 @@ import './globals.css'
 import AppShellClient from '@/app/components/AppShellClient'
 import { getNavigation } from '@/app/lib/getDocs'
 
+export const metadata = {
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
+}
+
 export default async function RootLayout({
   children,
 }: {
