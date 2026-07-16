@@ -1,7 +1,8 @@
-﻿'use client'
+'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Menu, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import Sidebar from '@/app/components/Sidebar'
 import { FrontendDoc } from '@/app/lib/docs-types'
 
@@ -15,38 +16,49 @@ export default function AppShellClient({
   children,
   navigation,
   brandName,
+  initialRevision,
 }: {
   children: React.ReactNode
   navigation: NavCategory[]
   brandName: string
+  initialRevision: string
 }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [liveBrandName, setLiveBrandName] = useState(brandName)
+  const revisionRef = useRef(initialRevision)
+  const router = useRouter()
 
   useEffect(() => {
     let mounted = true
 
-    const loadBrandName = async () => {
+    const loadLiveState = async () => {
       try {
-        const res = await fetch('/api/docs/settings/brand', { cache: 'no-store' })
+        const res = await fetch('/api/docs/live-state', { cache: 'no-store' })
         if (!res.ok) return
         const json = await res.json()
         const nextBrandName = String(json?.data?.brandName || '').trim()
+        const nextRevision = String(json?.data?.revision || '').trim()
+
         if (mounted && nextBrandName) {
           setLiveBrandName(nextBrandName)
+        }
+
+        if (mounted && nextRevision && nextRevision !== revisionRef.current) {
+          revisionRef.current = nextRevision
+          router.refresh()
         }
       } catch {
         // Keep existing value when request fails.
       }
     }
 
-    loadBrandName()
-    const timer = setInterval(loadBrandName, 15000)
+    loadLiveState()
+    const timer = setInterval(loadLiveState, 5000)
     return () => {
       mounted = false
       clearInterval(timer)
     }
-  }, [])
+  }, [router])
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row antialiased">

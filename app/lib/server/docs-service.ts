@@ -189,6 +189,7 @@ export async function createDoc(payload: Omit<Doc, 'createdAt' | 'updatedAt'>): 
   }
   await connectToDatabase();
   const created = await DocModel.create(payload);
+  await bumpDocsRevision();
   return mapToDoc(created.toObject());
 }
 
@@ -198,6 +199,9 @@ export async function updateDocById(id: string, updates: Partial<Doc>): Promise<
   }
   await connectToDatabase();
   const updated = await DocModel.findByIdAndUpdate(id, updates, { new: true }).lean();
+  if (updated) {
+    await bumpDocsRevision();
+  }
   return updated ? mapToDoc(updated) : null;
 }
 
@@ -207,6 +211,9 @@ export async function deleteDocById(id: string): Promise<boolean> {
   }
   await connectToDatabase();
   const res = await DocModel.findByIdAndDelete(id).lean();
+  if (res) {
+    await bumpDocsRevision();
+  }
   return Boolean(res);
 }
 
@@ -221,5 +228,42 @@ export async function getBrandNameSetting(): Promise<string> {
     return value || fallback;
   } catch {
     return fallback;
+  }
+}
+
+async function bumpDocsRevision(): Promise<void> {
+  if (!isMongoConfigured()) return;
+
+  await DocsSettingModel.updateOne(
+    { key: 'docs_revision' },
+    {
+      $set: {
+        value: {
+          stamp: new Date().toISOString(),
+        },
+      },
+    },
+    { upsert: true }
+  );
+}
+
+export async function getDocsLiveState(): Promise<{ brandName: string; revision: string }> {
+  const brandName = await getBrandNameSetting();
+  if (!isMongoConfigured()) {
+    return { brandName, revision: '' };
+  }
+
+  try {
+    await connectToDatabase();
+    const setting = await DocsSettingModel.findOne({ key: 'docs_revision' }).lean();
+    const revision =
+      typeof setting?.value?.stamp === 'string'
+        ? setting.value.stamp
+        : setting?.updatedAt
+          ? new Date(setting.updatedAt).toISOString()
+          : '';
+    return { brandName, revision };
+  } catch {
+    return { brandName, revision: '' };
   }
 }

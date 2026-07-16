@@ -2,6 +2,7 @@ import './globals.css'
 
 import AppShellClient from '@/app/components/AppShellClient'
 import { getNavigation } from '@/app/lib/getDocs'
+import { getDocsLiveState } from '@/app/lib/server/docs-service'
 
 export const metadata = {
   icons: {
@@ -17,12 +18,18 @@ export default async function RootLayout({
   children: React.ReactNode
 }) {
   const navigation = await getNavigation()
-  const brandName = process.env.NEXT_PUBLIC_BRAND_NAME || 'DigitalWasp'
+  const liveState = await getDocsLiveState()
 
   return (
     <html lang="en">
       <body suppressHydrationWarning>
-        <AppShellClient navigation={navigation} brandName={brandName}>{children}</AppShellClient>
+        <AppShellClient
+          navigation={navigation}
+          brandName={liveState.brandName}
+          initialRevision={liveState.revision}
+        >
+          {children}
+        </AppShellClient>
       </body>
     </html>
   )
