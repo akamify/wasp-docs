@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import { cn } from '@/app/lib/utils'
 import { FrontendDoc } from '@/app/lib/docs-types'
-import { Sparkles } from 'lucide-react'
+import { BookOpenText } from 'lucide-react'
 
 interface SidebarProps {
   className?: string
@@ -50,13 +50,13 @@ export default function Sidebar({ className, onCloseMobile, categories, brandNam
             </span>
 
             <span className="mt-1 hidden items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-600 sm:flex">
-              <Sparkles className="h-3 w-3" />
-              AI Workspace
+              <BookOpenText className="h-3 w-3" />
+              Docs Workspace
             </span>
           </span>
         </Link>
       </div>
-
+    
       {/* Navigation Areas */}
       <nav className="flex-1 overflow-y-auto scrollbar-none px-6 py-6 space-y-8">
         {categories.map((category) => {
@@ -81,7 +81,7 @@ export default function Sidebar({ className, onCloseMobile, categories, brandNam
                           "block pl-4 py-1 text-sm transition-all duration-150 -ml-[1px]",
                           "border-l-[1.5px] font-medium",
                           isActive
-                            ? "border-foreground text-foreground font-semibold"
+                            ? "border-emerald-600 text-emerald-600 font-semibold"
                             : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
                         )}
                       >
