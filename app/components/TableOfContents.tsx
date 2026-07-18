@@ -91,8 +91,8 @@ export default function TableOfContents({ content }: TableOfContentsProps) {
                 className={cn(
                   "block w-full text-left text-[11px] font-sans transition-all duration-150 pl-4 -ml-[1px] border-l py-1.5",
                   isActive
-                    ? "border-foreground text-foreground font-semibold"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
+                    ? "border-emerald-600 text-emerald-600 font-semibold"
+                    : "border-transparent text-muted-foreground hover:text-emerald-600"
                 )}
               >
                 {heading.text}

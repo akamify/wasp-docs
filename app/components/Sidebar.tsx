@@ -82,7 +82,7 @@ export default function Sidebar({ className, onCloseMobile, categories, brandNam
                           "border-l-[1.5px] font-medium",
                           isActive
                             ? "border-emerald-600 text-emerald-600 font-semibold"
-                            : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
+                            : "border-transparent text-muted-foreground hover:text-emerald-600 hover:border-muted-foreground/30"
                         )}
                       >
                         {doc.title}
