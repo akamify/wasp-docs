@@ -206,7 +206,7 @@ export default function DocPageClient({ doc }: DocPageClientProps) {
               <span className="text-muted-foreground/45">/</span>
               <span className="text-muted-foreground/60">{doc.category.toLowerCase()}</span>
               <span className="text-muted-foreground/45">/</span>
-              <span className="text-foreground font-bold">{doc.title.toLowerCase()}</span>
+              <span className="text-emerald-600 font-bold">{doc.title.toLowerCase()}</span>
             </nav>
 
             <SearchBar className="mb-10" placeholder="Search docs from this page..." />
