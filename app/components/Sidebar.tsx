@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import { cn } from '@/app/lib/utils'
 import { FrontendDoc } from '@/app/lib/docs-types'
+import { Sparkles } from 'lucide-react'
 
 interface SidebarProps {
   className?: string
@@ -30,16 +31,28 @@ export default function Sidebar({ className, onCloseMobile, categories, brandNam
     <div className={cn("flex flex-col h-full text-foreground font-[family-name:var(--font-sans)] selection:bg-neutral-200 dark:selection:bg-neutral-800", className)}>
       {/* Brand Header */}
       <div className="px-6 py-6">
-        <Link 
-          href="/introduction" 
+        <Link
+          href="/introduction"
           onClick={onCloseMobile}
-          className="flex items-center tracking-tight"
+          className="flex items-center gap-2 tracking-tight"
         >
-          <div className="h-5 w-5 flex items-center justify-center">
-            <img src="/logo.png" alt={brandName} className="h-4 w-4" />
+          <div className="relative flex h-[48px] w-[48px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50 via-white to-cyan-50 p-1 shadow-[0_12px_35px_rgba(16,185,129,0.18)] transition-all duration-300 group-hover:scale-[1.03]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_15%,rgba(52,211,153,0.35),transparent_35%),radial-gradient(circle_at_80%_80%,rgba(34,211,238,0.28),transparent_35%)]" />
+            <img
+              src="/logo.png"
+              alt={brandName}
+              className="relative z-10 h-full w-full rounded-[1.05rem] object-contain transition-transform duration-300 group-hover:scale-105"
+            />
           </div>
-          <span className="font-mono font-bold text-sm tracking-wider uppercase text-foreground">
-            {brandName}
+          <span className="flex min-w-0 flex-col leading-none">
+            <span className="truncate text-[17px] font-black tracking-[-0.03em] text-slate-950">
+              {brandName}
+            </span>
+
+            <span className="mt-1 hidden items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-600 sm:flex">
+              <Sparkles className="h-3 w-3" />
+              AI Workspace
+            </span>
           </span>
         </Link>
       </div>
@@ -54,7 +67,7 @@ export default function Sidebar({ className, onCloseMobile, categories, brandNam
               <h3 className="text-[10px] font-mono font-bold text-muted-foreground tracking-widest uppercase">
                 {category.name}
               </h3>
-              
+
               <ul className="space-y-1.5 border-l border-border ml-[2px]">
                 {docs.map((doc) => {
                   const normalizePath = (path: string) => path.replace(/\/$/, '')

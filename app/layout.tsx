@@ -6,9 +6,9 @@ import { getDocsLiveState } from '@/app/lib/server/docs-service'
 
 export const metadata = {
   icons: {
-    icon: '/favicon.svg',
-    shortcut: '/favicon.svg',
-    apple: '/favicon.svg',
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
   },
 }
 
