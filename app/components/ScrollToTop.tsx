@@ -31,7 +31,7 @@ export default function ScrollToTop() {
   return (
     <button
       onClick={scrollToTop}
-      className="fixed bottom-8 right-8 p-2.5 bg-foreground text-background border border-border rounded-[5px] shadow-md hover:opacity-90 transition-all duration-150 z-40"
+      className="fixed bottom-8 right-8 p-2.5 bg-emerald-600 text-background border border-border rounded-[5px] shadow-md hover:opacity-90 transition-all duration-150 z-40"
       title="Scroll to top"
     >
       <ChevronUp className="h-4 w-4" />
